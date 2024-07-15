@@ -17,7 +17,7 @@ jobs:
       - name: Checkout to specific commit
         run: |
           git fsck  
-          git checkout 8d96ed9 || echo "Checkout failed"  
+          #git checkout 8d96ed9 || echo "Checkout failed"  
           
       - name: Compile Module
         run: mvn test-compile -pl ignite-3 -am
