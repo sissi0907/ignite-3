@@ -1,0 +1,38 @@
+name: Reproduce Flaky Tests
+
+on: [push, pull_request]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Set up JDK 11
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '11'
+  
+      - name: Checkout to specific commit
+        run: |
+          git fsck  
+          git checkout a6865f2a5ffb9e97219fab8311140e108c5ba161 || echo "Checkout failed"  
+          
+      - name: Compile Module
+        run: mvn test-compile -pl ignite-3 -am
+  
+      - name: Run Flaky Test
+        run: mvn -pl ignite-3 test -Dtest=org.apache.ignite.internal.network.netty.ItConnectionManagerTest
+  
+      - name: Repeat Test for Flakiness
+        run: |
+          for i in {1..100}; do
+            mvn -pl ignite-3 test -Dtest=org.apache.ignite.internal.network.netty.ItConnectionManagerTest >> test_log.txt
+          done
+  
+      - name: Upload Test Log
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-log
+          path: reproduce-flaky/apache_data/fixed/test_log.txt
