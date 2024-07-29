@@ -8,31 +8,29 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Set up JDK 11
+      - name: Set up JDK 8
         uses: actions/setup-java@v2
         with:
           distribution: 'adopt'
-          java-version: '20'
-  
-      - name: Checkout to specific commit
-        run: |
-          git fsck  
-          git checkout 8d96ed95ffcbd8fc0596e1294822777c28ff0bc8 || echo "Checkout failed"  
+          java-version: '8'
           
-      - name: Compile Module
-        run: mvn test-compile -pl ignite-3 -am
-  
-      - name: Run Flaky Test
-        run: mvn -pl ignite-3 test -Dtest=org.apache.ignite.internal.network.netty.ItConnectionManagerTest
-  
-      - name: Repeat Test for Flakiness
-        run: |
-          for i in {1..100}; do
-            mvn -pl ignite-3 test -Dtest=org.apache.ignite.internal.network.netty.ItConnectionManagerTest >> test_log.txt
-          done
-  
-      - name: Upload Test Log
-        uses: actions/upload-artifact@v2
+      # - name: maven clean install 
+      #   run: mvn clean install -Dcheckstyle.skip -Drat.skip -DskipTests -U
+        
+      # - name: Compile Module
+      #   run: mvn test-compile -am -Dcheckstyle.skip -Drat.skip -U
+      - name: Check
+        uses: actions/checkout@v3
         with:
-          name: test-log
-          path: reproduce-flaky/apache_data/fixed/test_log.txt
+          ref: 48ca4d4632d8dc2d55fbde4bbfa7a6c52a841b30
+  
+      - name: Test with Maven 
+        run: | 
+              for i in {1..5}; do mvn test -Dtest=org.apache.ignite.internal.network.netty.ItConnectionManagerTest -DfailIfNoTests=false  -Drat.skip -fae; done#>>test_log_DOXIATOOLS-64.txt || echo "Test iteration $i failed">>test_log_DOXIATOOLS-64.txt; done
+              
+      # - name: Upload Test Log 
+      #   if: always() 
+      #   uses: actions/upload-artifact@v2 
+      #   with: 
+      #     name: test_log_DOXIATOOLS-64
+      #     path: test_log_DOXIATOOLS-64.txt
