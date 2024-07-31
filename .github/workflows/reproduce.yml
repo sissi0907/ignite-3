@@ -14,23 +14,47 @@ jobs:
           distribution: 'adopt'
           java-version: '8'
           
-      # - name: maven clean install 
-      #   run: mvn clean install -Dcheckstyle.skip -Drat.skip -DskipTests -U
+      - name: maven clean install 
+        run: mvn clean install -Dcheckstyle.skip -Drat.skip=true -DskipTests -U
         
       # - name: Compile Module
       #   run: mvn test-compile -am -Dcheckstyle.skip -Drat.skip -U
       - name: Check
         uses: actions/checkout@v3
         with:
-          ref: 48ca4d4632d8dc2d55fbde4bbfa7a6c52a841b30
+          ref: 851a963ac3885fc4e15c34aa638add2ee4989060
   
       - name: Test with Maven 
         run: | 
-              for i in {1..5}; do mvn test -Dtest=org.apache.ignite.internal.network.netty.ItConnectionManagerTest -DfailIfNoTests=false  -Drat.skip -fae; done#>>test_log_DOXIATOOLS-64.txt || echo "Test iteration $i failed">>test_log_DOXIATOOLS-64.txt; done
+              for i in {1..100}; do mvn test -Dtest=org.apache.ignite.internal.cluster.management.ItClusterManagerTest#testNodeRestart -DfailIfNoTests=false>>test_log_IGNITE-17832.txt; done
               
-      # - name: Upload Test Log 
-      #   if: always() 
-      #   uses: actions/upload-artifact@v2 
-      #   with: 
-      #     name: test_log_DOXIATOOLS-64
-      #     path: test_log_DOXIATOOLS-64.txt
+      - name: Upload Test Log 
+        if: always() 
+        uses: actions/upload-artifact@v2 
+        with: 
+          name: test_log_IGNITE-17832
+          path: test_log_IGNITE-17832.txt
+      - name: Find and Upload Surefire Reports
+        run: |
+          # Find all surefire-reports files
+          SUREFIRE_FILES=$(find . -type f -path "*/surefire-reports/*")
+          
+          # If there are surefire-reports files, upload them as artifacts
+          if [ -n "$SUREFIRE_FILES" ]; then
+            for FILE in $SUREFIRE_FILES; then
+              echo "Found Surefire report: $FILE"
+            done
+            # Upload found files as a single artifact
+            tar -czf surefire-reports.tar.gz $SUREFIRE_FILES
+            echo "Uploading Surefire reports..."
+            echo "::set-output name=surefire-archive::surefire-reports.tar.gz"
+          else
+            echo "No Surefire reports found."
+          fi
+  
+      - name: Upload Surefire Reports
+        if: steps.find-and-upload.outputs.surefire-archive
+        uses: actions/upload-artifact@v3
+        with:
+          name: surefire-reports
+          path: ${{ steps.find-and-upload.outputs.surefire-archive }}
